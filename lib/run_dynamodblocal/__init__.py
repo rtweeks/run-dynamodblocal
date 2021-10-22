@@ -10,11 +10,19 @@ import json
 import os.path
 import socket
 import subprocess as subp
+import sys
 from typing import Any, Callable, Iterable, Optional
 from unittest.mock import patch
 
 import logging
 _log = logging.getLogger(__name__)
+
+# Some platform dependencies -- and overridable if necessary
+PORT_TRY_TIMEOUT = (
+    4 if sys.platform == 'win32'
+    else 0.001
+)
+DEFAULT_PORT_RANGE = range(8100, 8500)
 
 @contextmanager
 def in_subprocess(
@@ -38,10 +46,10 @@ def in_subprocess(
     The port number (an :class:`int`) is yielded as the context value.
     """
     # Find an available TCP port as *port*
-    port_range = port_range or range(8100, 8500)
+    port_range = port_range or DEFAULT_PORT_RANGE
     for port in port_range:
         try:
-            socket.create_connection(('localhost', port), 0.001).close()
+            socket.create_connection(('localhost', port), PORT_TRY_TIMEOUT).close()
         except ConnectionRefusedError:
             break
         port = None
