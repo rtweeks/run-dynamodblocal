@@ -6,6 +6,7 @@ This package requires a ``java`` command on the command line.
 from .version import __version__
 
 from contextlib import contextmanager, ExitStack
+import itertools
 import json
 import os.path
 import socket
