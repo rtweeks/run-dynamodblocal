@@ -18,6 +18,10 @@ import logging
 _log = logging.getLogger(__name__)
 
 # Some platform dependencies -- and overridable if necessary
+JAVA_PROGRAM = (
+    'java.exe' if sys.platform == 'win32'
+    else 'java'
+)
 PORT_TRY_TIMEOUT = (
     4 if sys.platform == 'win32'
     else 0.001
@@ -60,7 +64,13 @@ def in_subprocess(
     # Start the dynamodb_local server on *port*
     _log.debug('Opening DynamoDBLocal on port %d', port)
     db_server = subp.Popen(
-        ['java', '-Djava.library.path=./DynamoDBLocal_lib', '-jar', 'DynamoDBLocal.jar', '-inMemory', '-port', str(port)],
+        [
+            JAVA_PROGRAM,
+            '-Djava.library.path=./DynamoDBLocal_lib',
+            '-jar', 'DynamoDBLocal.jar',
+            '-inMemory',
+            '-port', str(port),
+        ],
         cwd=dynamodblocal_path,
         stdout=subp.PIPE,
     )
