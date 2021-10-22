@@ -109,7 +109,7 @@ def in_subprocess(
         if sys.platform != 'win32':
             db_server.terminate()
         else:
-            children = psutil.Process(db_server.pid)
+            children = psutil.Process(db_server.pid).children(recursive=True)
             for child in children:
                 child.kill()
             db_server.terminate()
