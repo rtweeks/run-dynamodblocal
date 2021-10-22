@@ -51,12 +51,22 @@ def in_subprocess(
     """
     # Find an available TCP port as *port*
     port_range = port_range or DEFAULT_PORT_RANGE
-    for port in port_range:
-        try:
-            socket.create_connection(('localhost', port), PORT_TRY_TIMEOUT).close()
-        except ConnectionRefusedError:
-            break
+    try:
         port = None
+        port = first_port = next(port_range)
+        
+        # If this raises StopIteration, just use the only port given
+        second_port = next(port_range)
+    except StopIteration:
+        pass
+    else:
+        port = None
+        for port in itertools.chain((first_port, second_port), port_range):
+            try:
+                socket.create_connection(('localhost', port), PORT_TRY_TIMEOUT).close()
+            except (ConnectionRefusedError, socket.timeout):
+                break
+            port = None
     
     if port is None:
         raise Exception(f"No sockets available in {port_range}")
