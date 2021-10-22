@@ -15,6 +15,9 @@ import sys
 from typing import Any, Callable, Iterable, Optional
 from unittest.mock import patch
 
+if sys.platform == 'win32':
+    import psutil
+
 import logging
 _log = logging.getLogger(__name__)
 
@@ -103,7 +106,13 @@ def in_subprocess(
         yield port
     finally:
         _log.debug('Terminating DynamoDBLocal server (pid %d)', db_server.pid)
-        db_server.terminate()
+        if sys.platform != 'win32':
+            db_server.terminate()
+        else:
+            children = psutil.Process(db_server.pid)
+            for child in children:
+                child.kill()
+            db_server.terminate()
         try:
             returncode = db_server.wait()
             _log.debug('DynamoDBLocal (pid %d) server has exited with code %d', db_server.pid, returncode)
