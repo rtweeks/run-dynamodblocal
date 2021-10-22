@@ -40,7 +40,7 @@ setuptools.setup(
     package_dir={'': 'lib'},
     python_requires='>=3.6',
     install_requires=[
-        "psutil~=5.8 : sys.platform == 'win32'",
+        "psutil~=5.8; sys.platform == 'win32'",
     ],
     extras_require={
         'boto3': [
