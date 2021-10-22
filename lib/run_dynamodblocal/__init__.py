@@ -6,6 +6,7 @@ This package requires a ``java`` command on the command line.
 from .version import __version__
 
 from contextlib import contextmanager, ExitStack
+import itertools
 import json
 import os.path
 import socket
@@ -13,6 +14,9 @@ import subprocess as subp
 import sys
 from typing import Any, Callable, Iterable, Optional
 from unittest.mock import patch
+
+if sys.platform == 'win32':
+    import psutil
 
 import logging
 _log = logging.getLogger(__name__)
@@ -51,12 +55,23 @@ def in_subprocess(
     """
     # Find an available TCP port as *port*
     port_range = port_range or DEFAULT_PORT_RANGE
-    for port in port_range:
-        try:
-            socket.create_connection(('localhost', port), PORT_TRY_TIMEOUT).close()
-        except ConnectionRefusedError:
-            break
+    port_range = iter(port_range)
+    try:
         port = None
+        port = first_port = next(port_range)
+        
+        # If this raises StopIteration, just use the only port given
+        second_port = next(port_range)
+    except StopIteration:
+        pass
+    else:
+        port = None
+        for port in itertools.chain((first_port, second_port), port_range):
+            try:
+                socket.create_connection(('localhost', port), PORT_TRY_TIMEOUT).close()
+            except (ConnectionRefusedError, socket.timeout):
+                break
+            port = None
     
     if port is None:
         raise Exception(f"No sockets available in {port_range}")
@@ -91,7 +106,13 @@ def in_subprocess(
         yield port
     finally:
         _log.debug('Terminating DynamoDBLocal server (pid %d)', db_server.pid)
-        db_server.terminate()
+        if sys.platform != 'win32':
+            db_server.terminate()
+        else:
+            children = psutil.Process(db_server.pid).children(recursive=True)
+            for child in children:
+                child.kill()
+            db_server.terminate()
         try:
             returncode = db_server.wait()
             _log.debug('DynamoDBLocal (pid %d) server has exited with code %d', db_server.pid, returncode)
