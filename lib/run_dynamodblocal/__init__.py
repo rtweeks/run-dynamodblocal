@@ -51,6 +51,7 @@ def in_subprocess(
     """
     # Find an available TCP port as *port*
     port_range = port_range or DEFAULT_PORT_RANGE
+    port_range = iter(port_range)
     try:
         port = None
         port = first_port = next(port_range)
